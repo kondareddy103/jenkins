@@ -49,3 +49,11 @@ fs.copyFile(sourceFilePath, destFilePath, (err) => {
     });
 
     // Pipe archive data to the file
+    archive.pipe(output);
+
+    // Append the PDF file to the zip with the name 'aadhar.pdf'
+    archive.file(destFilePath, { name: 'aadhar.pdf' });
+
+    // Finalize the archive (ie we are done appending files but streams have to finish yet)
+    archive.finalize();
+});
