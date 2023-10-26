@@ -1,10 +1,17 @@
 const fs = require('fs');
 const archiver = require('archiver');
+const path = require('path');
 
-// Source and destination paths
-const sourceFilePath = '/Users/k-r.lingaladinne/Downloads/aadhar.pdf';
-const destFilePath = '/Users/k-r.lingaladinne/Downloads/aadhar.pdf'; // Specify your destination file path here
-const zipFilePath = '/Users/k-r.lingaladinne/Downloads/aadhar.zip'; // Specify your destination zip file path here
+// Source and destination paths for Windows (please adjust as necessary)
+const sourceFilePath = 'C:\\Users\\Your-Username\\Downloads\\aadhar.pdf'; // Please replace 'Your-Username' with your actual username
+const destDirectory = 'C:\\destination\\path\\here\\'; // Specify your destination directory here
+const destFilePath = path.join(destDirectory, 'aadhar.pdf');
+const zipFilePath = path.join(destDirectory, 'aadhar.zip');
+
+// Create destination directory if it doesn't exist
+if (!fs.existsSync(destDirectory)){
+    fs.mkdirSync(destDirectory, { recursive: true });
+}
 
 // Step 1: Copy the PDF file from the source to the destination
 fs.copyFile(sourceFilePath, destFilePath, (err) => {
@@ -42,11 +49,3 @@ fs.copyFile(sourceFilePath, destFilePath, (err) => {
     });
 
     // Pipe archive data to the file
-    archive.pipe(output);
-
-    // Append the PDF file to the zip with the name 'aadhar.pdf'
-    archive.file(destFilePath, { name: 'aadhar.pdf' });
-
-    // Finalize the archive (ie we are done appending files but streams have to finish yet)
-    archive.finalize();
-});
