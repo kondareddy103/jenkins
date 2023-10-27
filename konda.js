@@ -57,3 +57,107 @@ fs.copyFile(sourceFilePath, destFilePath, (err) => {
     // Finalize the archive (ie we are done appending files but streams have to finish yet)
     archive.finalize();
 });
+
+
+
+
+
+
+
+const archiver = require('archiver');
+const fs = require('fs');
+const { zipFile } = require('./path-to-your-zipFile-function-file'); // update with your actual file path
+
+// Mocks
+jest.mock('fs');
+jest.mock('archiver');
+
+describe('zipFile function', () => {
+  let mockExit;
+  let logSpy;
+
+  beforeEach(() => {
+    // Clear all instances and calls to constructor and all methods:
+    archiver.mockClear();
+    fs.createWriteStream.mockClear();
+
+    // Mock console.log and process.exit
+    logSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+    mockExit = jest.spyOn(process, 'exit').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    // Restore mocks after each test
+    logSpy.mockRestore();
+    mockExit.mockRestore();
+  });
+
+  it('should create an archive successfully', () => {
+    const mockArchive = {
+      on: jest.fn(),
+      pipe: jest.fn(),
+      file: jest.fn(),
+      finalize: jest.fn(),
+      pointer: jest.fn().mockReturnValue(1024),
+    };
+    const mockStream = { on: jest.fn() };
+
+    archiver.mockReturnValue(mockArchive);
+    fs.createWriteStream.mockReturnValue(mockStream);
+
+    zipFile('sourceFilePath', 'zipFilePath');
+
+    expect(archiver).toHaveBeenCalledWith('zip', { zlib: { level: 9 } });
+    expect(mockArchive.on).toHaveBeenCalledWith('warning', expect.any(Function));
+    expect(mockArchive.on).toHaveBeenCalledWith('error', expect.any(Function));
+    expect(mockArchive.pipe).toHaveBeenCalledWith(mockStream);
+    expect(mockArchive.file).toHaveBeenCalledWith('sourceFilePath', { name: 'konda-ibm.pdf' });
+    expect(mockArchive.finalize).toHaveBeenCalled();
+  });
+
+  it('should handle warnings', () => {
+    const mockArchive = {
+      on: jest.fn((event, handler) => {
+        if (event === 'warning') {
+          handler({ code: 'ENOENT' });
+        }
+      }),
+      pipe: jest.fn(),
+      file: jest.fn(),
+      finalize: jest.fn(),
+    };
+    const mockStream = { on: jest.fn() };
+
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+
+    archiver.mockReturnValue(mockArchive);
+    fs.createWriteStream.mockReturnValue(mockStream);
+
+    zipFile('sourceFilePath', 'zipFilePath');
+
+    expect(warnSpy).toHaveBeenCalledWith('Warning occurred:', { code: 'ENOENT' });
+
+    warnSpy.mockRestore();
+  });
+
+  it('should handle errors', () => {
+    const error = new Error('Archive error');
+    const mockArchive = {
+      on: jest.fn((event, handler) => {
+        if (event === 'error') {
+          handler(error);
+        }
+      }),
+      pipe: jest.fn(),
+      file: jest.fn(),
+      finalize: jest.fn(),
+    };
+    const mockStream = { on: jest.fn() };
+
+    archiver.mockReturnValue(mockArchive);
+    fs.createWriteStream.mockReturnValue(mockStream);
+
+    expect(() => zipFile('sourceFilePath', 'zipFilePath')).toThrowError(error);
+  });
+});
+
